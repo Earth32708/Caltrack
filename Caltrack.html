@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CalTrack — Know exactly what you eat</title>
+
+  <!-- Fonts: Plus Jakarta Sans for headings, Inter for body text -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================
+       1. DESIGN TOKENS — change your whole site's look here
+       ========================================================== */
+    :root {
+      --green:       #0E7A5F;   /* primary brand color (buttons, links) */
+      --green-dark:  #0A5C47;   /* button hover */
+      --green-soft:  #E3F2EC;   /* light green tint for backgrounds */
+      --coral:       #E8744F;   /* warm accent — use sparingly */
+      --coral-soft:  #FBEAE3;   /* light coral tint */
+      --bg:          #FAFAF7;   /* page background (warm off-white) */
+      --surface:     #FFFFFF;   /* cards */
+      --text:        #1F2937;   /* main text */
+      --text-muted:  #6B7280;   /* secondary text */
+      --border:      #E5E7EB;   /* card borders */
+
+      --radius: 12px;           /* rounded corners */
+      --space-1: 8px;
+      --space-2: 16px;
+      --space-3: 24px;
+      --space-4: 32px;
+      --space-6: 48px;
+      --space-8: 64px;
+
+      --font-heading: "Plus Jakarta Sans", sans-serif;
+      --font-body: "Inter", sans-serif;
+    }
+
+    /* ==========================================================
+       2. BASE STYLES
+       ========================================================== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    h1, h2, h3 {
+      font-family: var(--font-heading);
+      line-height: 1.2;
+    }
+
+    a { color: var(--green); }
+
+    img { max-width: 100%; }
+
+    /* Keeps content centered with breathing room on the sides */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 var(--space-3);
+    }
+
+    /* Every major section gets the same vertical rhythm */
+    section { padding: var(--space-8) 0; }
+
+    /* Visible focus ring for keyboard users */
+    a:focus-visible, button:focus-visible {
+      outline: 3px solid var(--coral);
+      outline-offset: 2px;
+    }
+
+    /* ==========================================================
+       3. BUTTONS
+       ========================================================== */
+    .btn {
+      display: inline-block;
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 500;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .btn-primary {
+      background: var(--green);
+      color: #FFFFFF;
+      border: none;
+    }
+    .btn-primary:hover { background: var(--green-dark); }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--green);
+      border: 1.5px solid var(--green);
+    }
+    .btn-secondary:hover { background: var(--green-soft); }
+
+    /* ==========================================================
+       4. HEADER / NAVIGATION
+       ========================================================== */
+    .site-header {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: var(--space-2) 0;
+    }
+
+    .site-header .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 20px;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .logo span { color: var(--green); }
+
+    /* ==========================================================
+       5. HERO SECTION
+       ========================================================== */
+    .hero .container {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;   /* text | app preview */
+      gap: var(--space-6);
+      align-items: center;
+    }
+
+    .hero h1 {
+      font-size: 42px;
+      font-weight: 700;
+      margin-bottom: var(--space-2);
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: var(--green);
+    }
+
+    .hero .subheadline {
+      font-size: 18px;
+      color: var(--text-muted);
+      margin-bottom: var(--space-3);
+      max-width: 460px;
+    }
+
+    .hero .note {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: var(--space-1);
+    }
+
+    /* --- The app preview card (the visual on the right) --- */
+    .app-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--space-3);
+      max-width: 340px;
+      margin: 0 auto;
+    }
+
+    .app-card .card-title {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: var(--space-2);
+    }
+
+    /* The calorie ring is drawn with CSS only — change the
+       percentage by editing the 68% in the gradient below. */
+    .calorie-ring {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: conic-gradient(var(--green) 0% 68%, var(--green-soft) 68% 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto var(--space-2);
+    }
+
+    .calorie-ring .ring-center {
+      width: 104px;
+      height: 104px;
+      border-radius: 50%;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring-center .kcal {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 22px;
+    }
+
+    .ring-center .kcal-label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .meal-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      padding: var(--space-1) 0;
+      border-top: 1px solid var(--border);
+    }
+    .meal-row .meal-kcal { color: var(--text-muted); }
+
+    /* ==========================================================
+       6. FEATURES SECTION
+       ========================================================== */
+    .features { background: var(--surface); }
+
+    .section-heading {
+      text-align: center;
+      font-size: 30px;
+      font-weight: 600;
+      margin-bottom: var(--space-1);
+    }
+
+    .section-subheading {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: var(--space-6);
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: var(--space-3);
+    }
+
+    .feature-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--space-3);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--green-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: var(--space-2);
+    }
+
+    .feature-card h3 {
+      font-size: 19px;
+      font-weight: 600;
+      margin-bottom: var(--space-1);
+    }
+
+    .feature-card p { color: var(--text-muted); }
+
+    /* ==========================================================
+       7. TESTIMONIALS SECTION
+       ========================================================== */
+    .testimonial-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: var(--space-3);
+    }
+
+    .testimonial-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--space-3);
+    }
+
+    .testimonial-card blockquote {
+      margin-bottom: var(--space-2);
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Simple initials circle instead of a photo */
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--coral-soft);
+      color: var(--coral);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .testimonial-author .name { font-weight: 500; font-size: 15px; }
+    .testimonial-author .result { font-size: 13px; color: var(--text-muted); }
+
+    /* ==========================================================
+       8. CONTACT / FINAL CALL TO ACTION
+       ========================================================== */
+    .contact-cta {
+      background: var(--green);
+      text-align: center;
+    }
+
+    .contact-cta h2 {
+      color: #FFFFFF;
+      font-size: 30px;
+      font-weight: 600;
+      margin-bottom: var(--space-1);
+    }
+
+    .contact-cta p {
+      color: var(--green-soft);
+      margin-bottom: var(--space-3);
+    }
+
+    .contact-cta .btn-primary {
+      background: #FFFFFF;
+      color: var(--green);
+    }
+    .contact-cta .btn-primary:hover { background: var(--green-soft); }
+
+    .contact-cta .contact-line {
+      margin-top: var(--space-3);
+      margin-bottom: 0;
+      font-size: 14px;
+    }
+
+    .contact-cta .contact-line a {
+      color: #FFFFFF;
+      font-weight: 500;
+    }
+
+    /* ==========================================================
+       9. FOOTER
+       ========================================================== */
+    .site-footer {
+      padding: var(--space-3) 0;
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================
+       10. MOBILE STYLES — applies on screens under 720px
+       ========================================================== */
+    @media (max-width: 720px) {
+      .hero .container {
+        grid-template-columns: 1fr;   /* stack text above the app card */
+        text-align: center;
+      }
+      .hero .subheadline { margin-left: auto; margin-right: auto; }
+      .hero h1 { font-size: 32px; }
+      .section-heading { font-size: 26px; }
+      section { padding: var(--space-6) 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="site-header">
+    <div class="container">
+      <a class="logo" href="#">Cal<span>Track</span></a>
+      <a class="btn btn-primary" href="#contact">Start free</a>
+    </div>
+  </header>
+
+  <!-- ===================== HERO ===================== -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-text">
+        <h1>Know exactly what you eat — <em>in under 30 seconds a meal</em></h1>
+        <p class="subheadline">
+          Log meals fast, get a daily target that adapts to your real
+          metabolism, and watch the guesswork disappear.
+        </p>
+        <a class="btn btn-primary" href="#contact">Start tracking free</a>
+        <p class="note">No credit card · 2-minute setup</p>
+      </div>
+
+      <!-- A simple preview of the app, drawn with CSS only -->
+      <div class="app-card">
+        <p class="card-title">Today</p>
+        <div class="calorie-ring">
+          <div class="ring-center">
+            <span class="kcal">1,360</span>
+            <span class="kcal-label">of 2,000 kcal</span>
+          </div>
+        </div>
+        <div class="meal-row"><span>Breakfast — jok moo</span><span class="meal-kcal">380 kcal</span></div>
+        <div class="meal-row"><span>Lunch — pad krapow</span><span class="meal-kcal">540 kcal</span></div>
+        <div class="meal-row"><span>Snack — mango</span><span class="meal-kcal">440 kcal</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FEATURES ===================== -->
+  <section class="features" id="features">
+    <div class="container">
+      <h2 class="section-heading">Everything you need, nothing you don't</h2>
+      <p class="section-subheading">Three things we do well, so tracking finally sticks.</p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <h3>Fast meal logging</h3>
+          <p>Search over 300,000 foods — including local Thai dishes — and log a full meal in seconds, not minutes.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3>Targets that learn</h3>
+          <p>Generic formulas are often wrong by 10–20%. Your target adjusts each week based on how your body actually responds.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📈</div>
+          <h3>Progress you can see</h3>
+          <p>Clear charts show your intake and weight trend over time, so you always know what's working.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== TESTIMONIALS ===================== -->
+  <section class="testimonials" id="testimonials">
+    <div class="container">
+      <h2 class="section-heading">People who finally stuck with it</h2>
+      <p class="section-subheading">Real results from everyday tracking — no extremes.</p>
+
+      <div class="testimonial-grid">
+        <div class="testimonial-card">
+          <blockquote>"Logging takes me seconds now. I finally stuck with it past week two, which never happened before."</blockquote>
+          <div class="testimonial-author">
+            <div class="avatar">NK</div>
+            <div>
+              <p class="name">Nok</p>
+              <p class="result">Lost 6 kg in 4 months</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card">
+          <blockquote>"The target actually adjusted when my weight plateaued. No other app I tried does that."</blockquote>
+          <div class="testimonial-author">
+            <div class="avatar">JW</div>
+            <div>
+              <p class="name">James</p>
+              <p class="result">Maintaining for 1 year</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card">
+          <blockquote>"It found pad krapow and som tam on the first search. That's when I knew this was built for me."</blockquote>
+          <div class="testimonial-author">
+            <div class="avatar">PA</div>
+            <div>
+              <p class="name">Ploy</p>
+              <p class="result">Logging daily for 6 months</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== CONTACT / FINAL CTA ===================== -->
+  <section class="contact-cta" id="contact">
+    <div class="container">
+      <h2>Your next meal is a good place to start</h2>
+      <p>Set up your profile in 2 minutes and log your first meal today.</p>
+      <a class="btn btn-primary" href="#">Start tracking free</a>
+      <p class="contact-line">
+        Questions? Email us at <a href="mailto:hello@caltrack.example">hello@caltrack.example</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2026 CalTrack · Made with care in Bangkok</p>
+    </div>
+  </footer>
+
+</body>
+</html>
