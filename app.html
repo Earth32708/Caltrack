@@ -87,6 +87,9 @@
       padding: 6px 12px;
     }
 
+    /* NEW: a button that stretches the full width of its card */
+    .btn-block { width: 100%; }
+
     input, select {
       font-family: var(--font-body);
       font-size: 16px;
@@ -127,9 +130,9 @@
     .hidden { display: none; }
 
     /* ==========================================================
-       3. LOGIN / SIGN UP VIEW
+       3. SIGN UP / LOG IN VIEWS
        ========================================================== */
-    .auth-wrap { max-width: 420px; margin: 48px auto 0; }
+    .auth-wrap { max-width: 420px; margin: 48px auto 0; padding: 0 var(--space-2); }
 
     .auth-logo {
       font-family: var(--font-heading);
@@ -140,12 +143,28 @@
     }
     .auth-logo span { color: var(--green); }
 
-    .auth-buttons {
-      display: flex;
-      gap: var(--space-1);
+    /* NEW: headings inside the sign up / log in cards */
+    .auth-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .auth-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: var(--space-2);
+    }
+
+    /* NEW: the "Already have an account?" line at the bottom */
+    .auth-switch {
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-muted);
       margin-top: var(--space-2);
     }
-    .auth-buttons .btn { flex: 1; }
+
+    .auth-switch a { color: var(--green); font-weight: 500; }
 
     /* ==========================================================
        4. APP VIEW (after login)
@@ -259,23 +278,52 @@
 </head>
 <body>
 
-  <!-- ===================== LOGIN / SIGN UP ===================== -->
+  <!-- ===================== SIGN UP / LOG IN ===================== -->
   <div id="auth-view" class="auth-wrap hidden">
     <p class="auth-logo">Cal<span>Track</span></p>
-    <div class="card">
+
+    <!-- SIGN UP CARD (new users see this first) -->
+    <div id="signup-card" class="card">
+      <h2 class="auth-title">Create your account</h2>
+      <p class="auth-sub">Track every meal in seconds — free.</p>
+
       <div class="field">
-        <label for="email">Email</label>
-        <input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+        <label for="signup-email">Email</label>
+        <input id="signup-email" type="email" autocomplete="email" placeholder="you@gmail.com">
       </div>
       <div class="field">
-        <label for="password">Password</label>
-        <input id="password" type="password" autocomplete="current-password" placeholder="At least 6 characters">
+        <label for="signup-password">Create a password</label>
+        <input id="signup-password" type="password" autocomplete="new-password" placeholder="At least 6 characters">
       </div>
-      <div class="auth-buttons">
-        <button id="login-btn" class="btn btn-primary">Log in</button>
-        <button id="signup-btn" class="btn btn-secondary">Sign up</button>
+      <div class="field">
+        <label for="signup-confirm">Confirm password</label>
+        <input id="signup-confirm" type="password" autocomplete="new-password" placeholder="Type it again">
       </div>
-      <p id="auth-message" class="message"></p>
+
+      <button id="signup-btn" class="btn btn-primary btn-block">Create account</button>
+      <p id="signup-message" class="message"></p>
+
+      <p class="auth-switch">Already have an account? <a href="#" id="go-login">Log in</a></p>
+    </div>
+
+    <!-- LOG IN CARD (hidden until the user clicks "Log in") -->
+    <div id="login-card" class="card hidden">
+      <h2 class="auth-title">Welcome back</h2>
+      <p class="auth-sub">Log in to see today's meals.</p>
+
+      <div class="field">
+        <label for="login-email">Email</label>
+        <input id="login-email" type="email" autocomplete="email" placeholder="you@gmail.com">
+      </div>
+      <div class="field">
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" autocomplete="current-password" placeholder="Your password">
+      </div>
+
+      <button id="login-btn" class="btn btn-primary btn-block">Log in</button>
+      <p id="login-message" class="message"></p>
+
+      <p class="auth-switch">New here? <a href="#" id="go-signup">Create an account</a></p>
     </div>
   </div>
 
@@ -343,17 +391,14 @@
   <script>
     /* ==========================================================
        1. YOUR SUPABASE PROJECT DETAILS
-       Find these in: Supabase dashboard → Project Settings → API
-       - Project URL  → goes in SUPABASE_URL
-       - "anon public" key → goes in SUPABASE_ANON_KEY
-       (The anon key is SAFE to put here. Never put the
-        "service_role" key anywhere in frontend code.)
+       (Already filled in for your project. The anon key is SAFE
+        to be here. Never put the "service_role" key in this file.)
        ========================================================== */
     const SUPABASE_URL = "https://xzmauonotullyizgncas.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6bWF1b25vdHVsbHlpemduY2FzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNzM2NTksImV4cCI6MjA5Njc0OTY1OX0.kRZp7eDwqpSBBZn9zALu5OvmCnHKtLnYs6GNVFs37Us";
 
     /* Your daily calorie target. We'll calculate this properly
-       from your profile in step 3 — for now, edit it by hand. */
+       from your profile in a later step — for now, edit it by hand. */
     const DAILY_TARGET = 2000;
 
     /* ==========================================================
@@ -361,13 +406,13 @@
        ========================================================== */
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Shortcuts for grabbing elements by their id
+    // Shortcut for grabbing elements by their id
     const $ = (id) => document.getElementById(id);
 
     /* ==========================================================
-       3. SHOWING THE RIGHT VIEW (login screen vs the app)
-       Supabase tells us whenever the user logs in or out,
-       and we show or hide the two views accordingly.
+       3. SHOWING THE RIGHT VIEW
+       Three possible screens: sign up, log in, or the app.
+       Supabase tells us whenever the user logs in or out.
        ========================================================== */
     db.auth.onAuthStateChange((event, session) => {
       if (session) {
@@ -380,7 +425,22 @@
     function showAuth() {
       $("auth-view").classList.remove("hidden");
       $("app-view").classList.add("hidden");
+      showSignup(); // new visitors start at "Create your account"
     }
+
+    // NEW: switch between the sign up and log in cards
+    function showSignup() {
+      $("signup-card").classList.remove("hidden");
+      $("login-card").classList.add("hidden");
+    }
+
+    function showLogin() {
+      $("login-card").classList.remove("hidden");
+      $("signup-card").classList.add("hidden");
+    }
+
+    $("go-login").addEventListener("click", (e) => { e.preventDefault(); showLogin(); });
+    $("go-signup").addEventListener("click", (e) => { e.preventDefault(); showSignup(); });
 
     function showApp(user) {
       $("auth-view").classList.add("hidden");
@@ -394,40 +454,72 @@
     }
 
     /* ==========================================================
-       4. SIGN UP / LOG IN / LOG OUT
+       4. SIGN UP
+       Three checks happen BEFORE we contact Supabase, so the
+       user gets instant, friendly error messages.
        ========================================================== */
     $("signup-btn").addEventListener("click", async () => {
-      const { data, error } = await db.auth.signUp({
-        email: $("email").value.trim(),
-        password: $("password").value,
-      });
-      if (error) return showMessage("auth-message", error.message, "error");
+      const email = $("signup-email").value.trim();
+      const password = $("signup-password").value;
+      const confirm = $("signup-confirm").value;
+
+      // Check 1: the email must look like a real address
+      if (!email.includes("@") || !email.includes(".")) {
+        return showMessage("signup-message", "Please enter a valid email address.", "error");
+      }
+
+      // Check 2: password must be at least 6 characters
+      if (password.length < 6) {
+        return showMessage("signup-message", "Your password needs at least 6 characters.", "error");
+      }
+
+      // Check 3: both password boxes must match
+      if (password !== confirm) {
+        return showMessage("signup-message", "The two passwords don't match — please retype them.", "error");
+      }
+
+      // All good — create the account in Supabase
+      const { data, error } = await db.auth.signUp({ email, password });
+      if (error) return showMessage("signup-message", error.message, "error");
 
       // If email confirmation is turned on in Supabase, there is
       // no session yet and the user must click the link in their inbox.
       if (!data.session) {
-        showMessage("auth-message", "Account created! Check your email to confirm, then log in.", "success");
+        showMessage("signup-message", "Account created! Check your email to confirm, then log in.", "success");
       }
     });
 
+    /* ==========================================================
+       5. LOG IN / LOG OUT
+       ========================================================== */
     $("login-btn").addEventListener("click", async () => {
-      const { error } = await db.auth.signInWithPassword({
-        email: $("email").value.trim(),
-        password: $("password").value,
-      });
-      if (error) showMessage("auth-message", error.message, "error");
+      const email = $("login-email").value.trim();
+      const password = $("login-password").value;
+
+      if (!email || !password) {
+        return showMessage("login-message", "Please fill in both boxes.", "error");
+      }
+
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if (error) {
+        // Supabase says "Invalid login credentials" — we say it more kindly
+        const friendly = error.message.includes("Invalid")
+          ? "Email or password is incorrect. Please try again."
+          : error.message;
+        showMessage("login-message", friendly, "error");
+      }
     });
 
     $("logout-btn").addEventListener("click", () => db.auth.signOut());
 
     /* ==========================================================
-       5. LOADING TODAY'S ENTRIES
-       Note: we only filter by date here. We do NOT need to filter
-       by user — the Row Level Security rules in the database
-       already guarantee each person only ever sees their own rows.
+       6. LOADING TODAY'S ENTRIES
+       We only filter by date. We do NOT need to filter by user —
+       the Row Level Security rules in the database already
+       guarantee each person only ever sees their own rows.
        ========================================================== */
     async function loadEntries() {
-      const today = new Date().toISOString().slice(0, 10); // "2026-06-12"
+      const today = new Date().toISOString().slice(0, 10); // e.g. "2026-06-12"
 
       const { data: entries, error } = await db
         .from("log_entries")
@@ -443,13 +535,12 @@
     }
 
     /* ==========================================================
-       6. ADDING AN ENTRY
+       7. ADDING AN ENTRY
        ========================================================== */
     $("add-btn").addEventListener("click", async () => {
       const name = $("food-name").value.trim();
       const kcal = parseInt($("food-kcal").value, 10);
 
-      // Simple checks before saving
       if (!name) return showMessage("add-message", "Please enter a food name.", "error");
       if (isNaN(kcal) || kcal < 0) return showMessage("add-message", "Please enter the calories.", "error");
 
@@ -464,7 +555,6 @@
 
       if (error) return showMessage("add-message", "Could not save: " + error.message, "error");
 
-      // Clear the form and refresh the list
       $("food-name").value = "";
       $("food-kcal").value = "";
       showMessage("add-message", "Added!", "success");
@@ -472,7 +562,7 @@
     });
 
     /* ==========================================================
-       7. DELETING AN ENTRY
+       8. DELETING AN ENTRY
        ========================================================== */
     async function deleteEntry(id) {
       const { error } = await db.from("log_entries").delete().eq("id", id);
@@ -481,7 +571,7 @@
     }
 
     /* ==========================================================
-       8. DRAWING THE LIST AND THE SUMMARY BAR
+       9. DRAWING THE LIST AND THE SUMMARY BAR
        ========================================================== */
     function renderEntries(entries) {
       const list = $("entries-list");
@@ -546,7 +636,6 @@
       const el = $(id);
       el.textContent = text;
       el.className = "message " + type;
-      // Success messages fade away after a moment
       if (type === "success") {
         setTimeout(() => { el.textContent = ""; }, 2500);
       }
