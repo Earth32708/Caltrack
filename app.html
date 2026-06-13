@@ -87,7 +87,6 @@
       padding: 6px 12px;
     }
 
-    /* NEW: a button that stretches the full width of its card */
     .btn-block { width: 100%; }
 
     input, select {
@@ -118,7 +117,6 @@
       margin-bottom: var(--space-3);
     }
 
-    /* Message shown after errors or successful actions */
     .message {
       font-size: 14px;
       margin-top: var(--space-1);
@@ -143,27 +141,15 @@
     }
     .auth-logo span { color: var(--green); }
 
-    /* NEW: headings inside the sign up / log in cards */
-    .auth-title {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
+    .auth-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .auth-sub { font-size: 14px; color: var(--text-muted); margin-bottom: var(--space-2); }
 
-    .auth-sub {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: var(--space-2);
-    }
-
-    /* NEW: the "Already have an account?" line at the bottom */
     .auth-switch {
       text-align: center;
       font-size: 14px;
       color: var(--text-muted);
       margin-top: var(--space-2);
     }
-
     .auth-switch a { color: var(--green); font-weight: 500; }
 
     /* ==========================================================
@@ -175,23 +161,19 @@
       align-items: center;
       margin-bottom: var(--space-3);
     }
-
     .app-header .who { font-size: 13px; color: var(--text-muted); }
 
-    /* --- Daily summary --- */
     .summary-numbers {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
       margin-bottom: var(--space-1);
     }
-
     .summary-eaten {
       font-family: var(--font-heading);
       font-weight: 600;
       font-size: 28px;
     }
-
     .summary-target { font-size: 14px; color: var(--text-muted); }
 
     .progress-track {
@@ -200,7 +182,6 @@
       border-radius: 999px;
       overflow: hidden;
     }
-
     .progress-fill {
       height: 100%;
       width: 0%;
@@ -208,8 +189,6 @@
       border-radius: 999px;
       transition: width 0.3s ease;
     }
-
-    /* The bar turns warm orange when over target */
     .progress-fill.over { background: var(--coral); }
 
     .summary-note {
@@ -224,6 +203,51 @@
       grid-template-columns: 1fr 110px 130px;
       gap: var(--space-1);
       align-items: end;
+    }
+
+    /* NEW: the food field needs to be "relative" so the dropdown
+       of suggestions can sit directly underneath it. */
+    .food-field { position: relative; }
+
+    /* NEW: the dropdown list of food suggestions */
+    .suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-top: 4px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    .suggestion-item {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-1);
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .suggestion-item:hover { background: var(--green-soft); }
+    .suggestion-item .s-cal { color: var(--text-muted); white-space: nowrap; }
+
+    .suggestion-empty {
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* NEW: helper line under the form, e.g. "Auto-filled..." */
+    .food-hint {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: var(--space-1);
+      min-height: 20px;
     }
 
     /* --- Entries list --- */
@@ -270,7 +294,6 @@
       padding: var(--space-3) 0;
     }
 
-    /* Mobile: stack the add-food form vertically */
     @media (max-width: 560px) {
       .add-form-row { grid-template-columns: 1fr; }
     }
@@ -282,7 +305,7 @@
   <div id="auth-view" class="auth-wrap hidden">
     <p class="auth-logo">Cal<span>Track</span></p>
 
-    <!-- SIGN UP CARD (new users see this first) -->
+    <!-- SIGN UP CARD -->
     <div id="signup-card" class="card">
       <h2 class="auth-title">Create your account</h2>
       <p class="auth-sub">Track every meal in seconds — free.</p>
@@ -306,7 +329,7 @@
       <p class="auth-switch">Already have an account? <a href="#" id="go-login">Log in</a></p>
     </div>
 
-    <!-- LOG IN CARD (hidden until the user clicks "Log in") -->
+    <!-- LOG IN CARD -->
     <div id="login-card" class="card hidden">
       <h2 class="auth-title">Welcome back</h2>
       <p class="auth-sub">Log in to see today's meals.</p>
@@ -353,13 +376,15 @@
     <!-- Add food -->
     <div class="card">
       <div class="add-form-row">
-        <div>
+        <!-- The food field holds the input AND the suggestions dropdown -->
+        <div class="food-field">
           <label for="food-name">Food</label>
-          <input id="food-name" type="text" placeholder="e.g. pad krapow">
+          <input id="food-name" type="text" autocomplete="off" placeholder="Start typing, e.g. pad krapow">
+          <div id="food-suggestions" class="suggestions hidden"></div>
         </div>
         <div>
           <label for="food-kcal">Calories</label>
-          <input id="food-kcal" type="number" min="0" placeholder="540">
+          <input id="food-kcal" type="number" min="0" placeholder="auto">
         </div>
         <div>
           <label for="food-meal">Meal</label>
@@ -371,7 +396,8 @@
           </select>
         </div>
       </div>
-      <div style="margin-top: var(--space-2);">
+      <p id="food-hint" class="food-hint"></p>
+      <div>
         <button id="add-btn" class="btn btn-primary">Add to log</button>
       </div>
       <p id="add-message" class="message"></p>
@@ -391,54 +417,41 @@
   <script>
     /* ==========================================================
        1. YOUR SUPABASE PROJECT DETAILS
-       (Already filled in for your project. The anon key is SAFE
-        to be here. Never put the "service_role" key in this file.)
+       (Already filled in. The anon key is SAFE to be here.
+        Never put the "service_role" key in this file.)
        ========================================================== */
     const SUPABASE_URL = "https://xzmauonotullyizgncas.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6bWF1b25vdHVsbHlpemduY2FzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNzM2NTksImV4cCI6MjA5Njc0OTY1OX0.kRZp7eDwqpSBBZn9zALu5OvmCnHKtLnYs6GNVFs37Us";
 
-    /* Your daily calorie target. We'll calculate this properly
-       from your profile in a later step — for now, edit it by hand. */
+    /* Daily calorie target — calculated from a profile in a later step. */
     const DAILY_TARGET = 2000;
 
     /* ==========================================================
        2. SETUP
        ========================================================== */
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // Shortcut for grabbing elements by their id
     const $ = (id) => document.getElementById(id);
 
     /* ==========================================================
-       3. SHOWING THE RIGHT VIEW
-       Three possible screens: sign up, log in, or the app.
-       Supabase tells us whenever the user logs in or out.
+       3. SHOWING THE RIGHT VIEW (sign up / log in / app)
        ========================================================== */
     db.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        showApp(session.user);
-      } else {
-        showAuth();
-      }
+      if (session) { showApp(session.user); } else { showAuth(); }
     });
 
     function showAuth() {
       $("auth-view").classList.remove("hidden");
       $("app-view").classList.add("hidden");
-      showSignup(); // new visitors start at "Create your account"
+      showSignup();
     }
-
-    // NEW: switch between the sign up and log in cards
     function showSignup() {
       $("signup-card").classList.remove("hidden");
       $("login-card").classList.add("hidden");
     }
-
     function showLogin() {
       $("login-card").classList.remove("hidden");
       $("signup-card").classList.add("hidden");
     }
-
     $("go-login").addEventListener("click", (e) => { e.preventDefault(); showLogin(); });
     $("go-signup").addEventListener("click", (e) => { e.preventDefault(); showSignup(); });
 
@@ -455,35 +468,24 @@
 
     /* ==========================================================
        4. SIGN UP
-       Three checks happen BEFORE we contact Supabase, so the
-       user gets instant, friendly error messages.
        ========================================================== */
     $("signup-btn").addEventListener("click", async () => {
       const email = $("signup-email").value.trim();
       const password = $("signup-password").value;
       const confirm = $("signup-confirm").value;
 
-      // Check 1: the email must look like a real address
       if (!email.includes("@") || !email.includes(".")) {
         return showMessage("signup-message", "Please enter a valid email address.", "error");
       }
-
-      // Check 2: password must be at least 6 characters
       if (password.length < 6) {
         return showMessage("signup-message", "Your password needs at least 6 characters.", "error");
       }
-
-      // Check 3: both password boxes must match
       if (password !== confirm) {
         return showMessage("signup-message", "The two passwords don't match — please retype them.", "error");
       }
 
-      // All good — create the account in Supabase
       const { data, error } = await db.auth.signUp({ email, password });
       if (error) return showMessage("signup-message", error.message, "error");
-
-      // If email confirmation is turned on in Supabase, there is
-      // no session yet and the user must click the link in their inbox.
       if (!data.session) {
         showMessage("signup-message", "Account created! Check your email to confirm, then log in.", "success");
       }
@@ -495,32 +497,104 @@
     $("login-btn").addEventListener("click", async () => {
       const email = $("login-email").value.trim();
       const password = $("login-password").value;
-
       if (!email || !password) {
         return showMessage("login-message", "Please fill in both boxes.", "error");
       }
-
       const { error } = await db.auth.signInWithPassword({ email, password });
       if (error) {
-        // Supabase says "Invalid login credentials" — we say it more kindly
         const friendly = error.message.includes("Invalid")
           ? "Email or password is incorrect. Please try again."
           : error.message;
         showMessage("login-message", friendly, "error");
       }
     });
-
     $("logout-btn").addEventListener("click", () => db.auth.signOut());
 
     /* ==========================================================
-       6. LOADING TODAY'S ENTRIES
-       We only filter by date. We do NOT need to filter by user —
-       the Row Level Security rules in the database already
-       guarantee each person only ever sees their own rows.
+       6. FOOD SEARCH (the new part)
+       As the user types, we look up matching foods in the
+       "foods" table and show them in a dropdown. Picking one
+       fills in the calories automatically.
+       ========================================================== */
+    let searchTimer = null;
+
+    $("food-name").addEventListener("input", () => {
+      const query = $("food-name").value.trim();
+      $("food-hint").textContent = "";   // typing again clears the old hint
+
+      // Wait until there are at least 2 letters, and pause briefly so
+      // we don't search on every single keystroke.
+      clearTimeout(searchTimer);
+      if (query.length < 2) { hideSuggestions(); return; }
+      searchTimer = setTimeout(() => searchFoods(query), 200);
+    });
+
+    async function searchFoods(query) {
+      const { data: foods, error } = await db
+        .from("foods")
+        .select("name, calories, serving")
+        .ilike("name", "%" + query + "%")   // case-insensitive "contains"
+        .order("name", { ascending: true })
+        .limit(8);
+
+      if (error) { hideSuggestions(); return; }
+      renderSuggestions(foods);
+    }
+
+    function renderSuggestions(foods) {
+      const box = $("food-suggestions");
+      box.innerHTML = "";
+
+      if (!foods || foods.length === 0) {
+        box.innerHTML = '<div class="suggestion-empty">No match — just type the calories yourself.</div>';
+        box.classList.remove("hidden");
+        return;
+      }
+
+      for (const food of foods) {
+        const item = document.createElement("div");
+        item.className = "suggestion-item";
+
+        const name = document.createElement("span");
+        name.textContent = food.name;
+
+        const cal = document.createElement("span");
+        cal.className = "s-cal";
+        cal.textContent = food.calories.toLocaleString() + " kcal · " + food.serving;
+
+        item.appendChild(name);
+        item.appendChild(cal);
+        item.addEventListener("click", () => pickFood(food));
+        box.appendChild(item);
+      }
+      box.classList.remove("hidden");
+    }
+
+    // When a suggestion is clicked: fill in the name and calories.
+    function pickFood(food) {
+      $("food-name").value = food.name;
+      $("food-kcal").value = food.calories;
+      $("food-hint").textContent =
+        "Auto-filled from the food list (" + food.serving + "). You can adjust the calories if your portion was different.";
+      hideSuggestions();
+    }
+
+    function hideSuggestions() {
+      const box = $("food-suggestions");
+      box.classList.add("hidden");
+      box.innerHTML = "";
+    }
+
+    // Close the dropdown if the user clicks anywhere outside the food field.
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".food-field")) hideSuggestions();
+    });
+
+    /* ==========================================================
+       7. LOADING TODAY'S ENTRIES
        ========================================================== */
     async function loadEntries() {
-      const today = new Date().toISOString().slice(0, 10); // e.g. "2026-06-12"
-
+      const today = new Date().toISOString().slice(0, 10);
       const { data: entries, error } = await db
         .from("log_entries")
         .select("*")
@@ -535,17 +609,16 @@
     }
 
     /* ==========================================================
-       7. ADDING AN ENTRY
+       8. ADDING AN ENTRY
        ========================================================== */
     $("add-btn").addEventListener("click", async () => {
       const name = $("food-name").value.trim();
       const kcal = parseInt($("food-kcal").value, 10);
 
       if (!name) return showMessage("add-message", "Please enter a food name.", "error");
-      if (isNaN(kcal) || kcal < 0) return showMessage("add-message", "Please enter the calories.", "error");
+      if (isNaN(kcal) || kcal < 0) return showMessage("add-message", "Please enter the calories (or pick a food from the list).", "error");
 
       const { data: { user } } = await db.auth.getUser();
-
       const { error } = await db.from("log_entries").insert({
         user_id: user.id,
         food_name: name,
@@ -557,12 +630,13 @@
 
       $("food-name").value = "";
       $("food-kcal").value = "";
+      $("food-hint").textContent = "";
       showMessage("add-message", "Added!", "success");
       loadEntries();
     });
 
     /* ==========================================================
-       8. DELETING AN ENTRY
+       9. DELETING AN ENTRY
        ========================================================== */
     async function deleteEntry(id) {
       const { error } = await db.from("log_entries").delete().eq("id", id);
@@ -571,7 +645,7 @@
     }
 
     /* ==========================================================
-       9. DRAWING THE LIST AND THE SUMMARY BAR
+       10. DRAWING THE LIST AND THE SUMMARY BAR
        ========================================================== */
     function renderEntries(entries) {
       const list = $("entries-list");
@@ -582,7 +656,6 @@
       }
 
       let total = 0;
-
       for (const entry of entries) {
         total += entry.calories;
 
@@ -611,13 +684,11 @@
         row.appendChild(del);
         list.appendChild(row);
       }
-
       updateSummary(total);
     }
 
     function updateSummary(total) {
       $("total-kcal").textContent = total.toLocaleString();
-
       const percent = Math.min((total / DAILY_TARGET) * 100, 100);
       const fill = $("progress-fill");
       fill.style.width = percent + "%";
@@ -631,14 +702,11 @@
       }
     }
 
-    /* Small helper for showing feedback messages */
     function showMessage(id, text, type) {
       const el = $(id);
       el.textContent = text;
       el.className = "message " + type;
-      if (type === "success") {
-        setTimeout(() => { el.textContent = ""; }, 2500);
-      }
+      if (type === "success") setTimeout(() => { el.textContent = ""; }, 2500);
     }
   </script>
 </body>
