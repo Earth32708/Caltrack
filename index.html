@@ -15,18 +15,18 @@
        1. DESIGN TOKENS — change your whole site's look here
        ========================================================== */
     :root {
-      --green:       #0E7A5F;   /* primary brand color (buttons, links) */
-      --green-dark:  #0A5C47;   /* button hover */
-      --green-soft:  #E3F2EC;   /* light green tint for backgrounds */
-      --coral:       #E8744F;   /* warm accent — use sparingly */
-      --coral-soft:  #FBEAE3;   /* light coral tint */
-      --bg:          #FAFAF7;   /* page background (warm off-white) */
-      --surface:     #FFFFFF;   /* cards */
-      --text:        #1F2937;   /* main text */
-      --text-muted:  #6B7280;   /* secondary text */
-      --border:      #E5E7EB;   /* card borders */
+      --green:       #0E7A5F;
+      --green-dark:  #0A5C47;
+      --green-soft:  #E3F2EC;
+      --coral:       #E8744F;
+      --coral-soft:  #FBEAE3;
+      --bg:          #FAFAF7;
+      --surface:     #FFFFFF;
+      --text:        #1F2937;
+      --text-muted:  #6B7280;
+      --border:      #E5E7EB;
 
-      --radius: 12px;           /* rounded corners */
+      --radius: 12px;
       --space-1: 8px;
       --space-2: 16px;
       --space-3: 24px;
@@ -38,9 +38,6 @@
       --font-body: "Inter", sans-serif;
     }
 
-    /* ==========================================================
-       2. BASE STYLES
-       ========================================================== */
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
@@ -51,33 +48,27 @@
       background: var(--bg);
     }
 
-    h1, h2, h3 {
-      font-family: var(--font-heading);
-      line-height: 1.2;
-    }
+    h1, h2, h3 { font-family: var(--font-heading); line-height: 1.2; }
 
     a { color: var(--green); }
 
     img { max-width: 100%; }
 
-    /* Keeps content centered with breathing room on the sides */
     .container {
       max-width: 1100px;
       margin: 0 auto;
       padding: 0 var(--space-3);
     }
 
-    /* Every major section gets the same vertical rhythm */
     section { padding: var(--space-8) 0; }
 
-    /* Visible focus ring for keyboard users */
     a:focus-visible, button:focus-visible {
       outline: 3px solid var(--coral);
       outline-offset: 2px;
     }
 
     /* ==========================================================
-       3. BUTTONS
+       2. BUTTONS
        ========================================================== */
     .btn {
       display: inline-block;
@@ -91,11 +82,7 @@
       transition: background 0.15s ease;
     }
 
-    .btn-primary {
-      background: var(--green);
-      color: #FFFFFF;
-      border: none;
-    }
+    .btn-primary { background: var(--green); color: #FFFFFF; border: none; }
     .btn-primary:hover { background: var(--green-dark); }
 
     .btn-secondary {
@@ -106,7 +93,7 @@
     .btn-secondary:hover { background: var(--green-soft); }
 
     /* ==========================================================
-       4. HEADER / NAVIGATION
+       3. HEADER / NAVIGATION
        ========================================================== */
     .site-header {
       background: var(--bg);
@@ -130,11 +117,11 @@
     .logo span { color: var(--green); }
 
     /* ==========================================================
-       5. HERO SECTION
+       4. HERO SECTION
        ========================================================== */
     .hero .container {
       display: grid;
-      grid-template-columns: 1.2fr 1fr;   /* text | app preview */
+      grid-template-columns: 1.2fr 1fr;
       gap: var(--space-6);
       align-items: center;
     }
@@ -145,10 +132,7 @@
       margin-bottom: var(--space-2);
     }
 
-    .hero h1 em {
-      font-style: normal;
-      color: var(--green);
-    }
+    .hero h1 em { font-style: normal; color: var(--green); }
 
     .hero .subheadline {
       font-size: 18px;
@@ -163,7 +147,6 @@
       margin-top: var(--space-1);
     }
 
-    /* --- The app preview card (the visual on the right) --- */
     .app-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -179,8 +162,6 @@
       margin-bottom: var(--space-2);
     }
 
-    /* The calorie ring is drawn with CSS only — change the
-       percentage by editing the 68% in the gradient below. */
     .calorie-ring {
       width: 140px;
       height: 140px;
@@ -209,10 +190,7 @@
       font-size: 22px;
     }
 
-    .ring-center .kcal-label {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
+    .ring-center .kcal-label { font-size: 12px; color: var(--text-muted); }
 
     .meal-row {
       display: flex;
@@ -224,7 +202,7 @@
     .meal-row .meal-kcal { color: var(--text-muted); }
 
     /* ==========================================================
-       6. FEATURES SECTION
+       5. FEATURES SECTION
        ========================================================== */
     .features { background: var(--surface); }
 
@@ -275,7 +253,7 @@
     .feature-card p { color: var(--text-muted); }
 
     /* ==========================================================
-       7. TESTIMONIALS SECTION
+       6. TESTIMONIALS SECTION
        ========================================================== */
     .testimonial-grid {
       display: grid;
@@ -290,9 +268,7 @@
       padding: var(--space-3);
     }
 
-    .testimonial-card blockquote {
-      margin-bottom: var(--space-2);
-    }
+    .testimonial-card blockquote { margin-bottom: var(--space-2); }
 
     .testimonial-author {
       display: flex;
@@ -300,7 +276,6 @@
       gap: 12px;
     }
 
-    /* Simple initials circle instead of a photo */
     .avatar {
       width: 44px;
       height: 44px;
@@ -318,12 +293,9 @@
     .testimonial-author .result { font-size: 13px; color: var(--text-muted); }
 
     /* ==========================================================
-       8. CONTACT / FINAL CALL TO ACTION
+       7. CONTACT / FINAL CALL TO ACTION
        ========================================================== */
-    .contact-cta {
-      background: var(--green);
-      text-align: center;
-    }
+    .contact-cta { background: var(--green); text-align: center; }
 
     .contact-cta h2 {
       color: #FFFFFF;
@@ -332,15 +304,9 @@
       margin-bottom: var(--space-1);
     }
 
-    .contact-cta p {
-      color: var(--green-soft);
-      margin-bottom: var(--space-3);
-    }
+    .contact-cta p { color: var(--green-soft); margin-bottom: var(--space-3); }
 
-    .contact-cta .btn-primary {
-      background: #FFFFFF;
-      color: var(--green);
-    }
+    .contact-cta .btn-primary { background: #FFFFFF; color: var(--green); }
     .contact-cta .btn-primary:hover { background: var(--green-soft); }
 
     .contact-cta .contact-line {
@@ -349,13 +315,10 @@
       font-size: 14px;
     }
 
-    .contact-cta .contact-line a {
-      color: #FFFFFF;
-      font-weight: 500;
-    }
+    .contact-cta .contact-line a { color: #FFFFFF; font-weight: 500; }
 
     /* ==========================================================
-       9. FOOTER
+       8. FOOTER
        ========================================================== */
     .site-footer {
       padding: var(--space-3) 0;
@@ -365,13 +328,10 @@
     }
 
     /* ==========================================================
-       10. MOBILE STYLES — applies on screens under 720px
+       9. MOBILE STYLES
        ========================================================== */
     @media (max-width: 720px) {
-      .hero .container {
-        grid-template-columns: 1fr;   /* stack text above the app card */
-        text-align: center;
-      }
+      .hero .container { grid-template-columns: 1fr; text-align: center; }
       .hero .subheadline { margin-left: auto; margin-right: auto; }
       .hero h1 { font-size: 32px; }
       .section-heading { font-size: 26px; }
@@ -385,7 +345,7 @@
   <header class="site-header">
     <div class="container">
       <a class="logo" href="#">Cal<span>Track</span></a>
-      <a class="btn btn-primary" href="#contact">Start free</a>
+      <a class="btn btn-primary" href="app.html">Start free</a>
     </div>
   </header>
 
@@ -398,11 +358,10 @@
           Log meals fast, get a daily target that adapts to your real
           metabolism, and watch the guesswork disappear.
         </p>
-        <a class="btn btn-primary" href="#contact">Start tracking free</a>
+        <a class="btn btn-primary" href="app.html">Start tracking free</a>
         <p class="note">No credit card · 2-minute setup</p>
       </div>
 
-      <!-- A simple preview of the app, drawn with CSS only -->
       <div class="app-card">
         <p class="card-title">Today</p>
         <div class="calorie-ring">
@@ -494,7 +453,7 @@
     <div class="container">
       <h2>Your next meal is a good place to start</h2>
       <p>Set up your profile in 2 minutes and log your first meal today.</p>
-      <a class="btn btn-primary" href="#">Start tracking free</a>
+      <a class="btn btn-primary" href="app.html">Start tracking free</a>
       <p class="contact-line">
         Questions? Email us at <a href="mailto:hello@caltrack.example">hello@caltrack.example</a>
       </p>
