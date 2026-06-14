@@ -156,7 +156,6 @@
     }
     @media (max-width: 480px) { .profile-grid { grid-template-columns: 1fr; } }
 
-    /* --- The big calculated target number on the result card --- */
     .target-big {
       font-family: var(--font-heading);
       font-weight: 700;
@@ -166,7 +165,6 @@
     }
     .target-unit { font-size: 16px; font-weight: 500; color: var(--text-muted); }
 
-    /* --- The "this is an estimate" note --- */
     .disclaimer {
       font-size: 13px;
       color: var(--text-muted);
@@ -306,6 +304,52 @@
       color: var(--text-muted);
       font-size: 14px;
       padding: var(--space-3) 0;
+    }
+
+    /* --- Weekly chart (NEW) --- */
+    .chart-plot {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 150px;
+      margin-top: var(--space-2);
+    }
+    /* Each bar is one day. Its height is set in JavaScript. */
+    .bar {
+      flex: 1;
+      background: var(--green);
+      border-radius: 4px 4px 0 0;
+      min-height: 2px;
+      transition: height 0.3s ease;
+    }
+    .bar.over  { background: var(--coral); }   /* a day over target */
+    .bar.empty { background: var(--border); }  /* a day with nothing logged */
+
+    /* The dashed line showing the daily target across the chart */
+    .target-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      border-top: 2px dashed var(--green-dark);
+      pointer-events: none;
+    }
+    .target-tag {
+      position: absolute;
+      right: 0;
+      top: -9px;
+      font-size: 10px;
+      color: var(--green-dark);
+      background: var(--surface);
+      padding: 0 4px;
+    }
+
+    .chart-labels { display: flex; gap: 6px; margin-top: 6px; }
+    .chart-labels span {
+      flex: 1;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
     }
 
     @media (max-width: 560px) {
@@ -494,6 +538,14 @@
       <div id="entries-list"></div>
     </div>
 
+    <!-- Last 7 days chart (NEW) -->
+    <div class="card">
+      <h3 style="font-size:17px; margin-bottom: var(--space-1);">Last 7 days</h3>
+      <div class="chart-plot" id="chart-plot"></div>
+      <div class="chart-labels" id="chart-labels"></div>
+      <p id="week-note" class="summary-note"></p>
+    </div>
+
   </div>
 
   <!-- Supabase JavaScript library, loaded from a CDN -->
@@ -518,15 +570,22 @@
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const $ = (id) => document.getElementById(id);
 
-    // We remember who is logged in and their profile while the app runs.
     let currentUser = null;
     let currentProfile = null;
 
+    /* A small helper that gives "YYYY-MM-DD" for the LOCAL day
+       (Thailand time), not UTC. We use this everywhere we deal
+       with dates so a meal logged late at night counts as today. */
+    function localDate(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return y + "-" + m + "-" + day;
+    }
+    function todayStr() { return localDate(new Date()); }
+
     /* ==========================================================
        3. DECIDING WHICH SCREEN TO SHOW
-       When someone logs in we check: do they have a profile yet?
-       - No  → show the profile setup form first
-       - Yes → load their target and show the app
        ========================================================== */
     db.auth.onAuthStateChange((event, session) => {
       if (session) { enterApp(session.user); } else { showAuth(); }
@@ -536,14 +595,13 @@
       currentUser = user;
       currentProfile = await loadProfile(user.id);
       if (!currentProfile) {
-        showProfileForm(null);          // brand-new user → set up profile
+        showProfileForm(null);
       } else {
         dailyTarget = currentProfile.daily_target;
         showApp(user);
       }
     }
 
-    /* ---- the three top-level views ---- */
     function showAuth() {
       $("auth-view").classList.remove("hidden");
       $("profile-view").classList.add("hidden");
@@ -558,8 +616,6 @@
       $("profile-result-card").classList.add("hidden");
       $("profile-form-card").classList.remove("hidden");
       $("profile-message").textContent = "";
-
-      // If editing an existing profile, fill the boxes with current values.
       if (profile) {
         $("p-sex").value = profile.sex;
         $("p-age").value = profile.age;
@@ -579,10 +635,16 @@
       $("today-heading").textContent = new Date().toLocaleDateString(undefined, {
         weekday: "long", day: "numeric", month: "long"
       });
-      loadEntries();
+      refresh();
     }
 
-    /* ---- switching between the sign up and log in cards ---- */
+    /* Reload everything that depends on the data: today's list
+       and the 7-day chart. Called on open and after any change. */
+    function refresh() {
+      loadEntries();
+      loadWeek();
+    }
+
     function showSignup() {
       $("signup-card").classList.remove("hidden");
       $("login-card").classList.add("hidden");
@@ -641,52 +703,40 @@
     /* ==========================================================
        6. PROFILE: LOADING, CALCULATING, SAVING
        ========================================================== */
-
-    // Read this user's profile row, or null if they don't have one yet.
     async function loadProfile(userId) {
       const { data, error } = await db
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .maybeSingle();          // returns null (not an error) if no row exists
+        .maybeSingle();
       if (error) { console.error(error); return null; }
       return data;
     }
 
-    /* The Mifflin-St Jeor calculation, step by step:
-       1. BMR  = calories your body burns at complete rest
-       2. TDEE = BMR adjusted for how active you are
-       3. target = TDEE nudged up or down for your goal
-       4. a safe minimum so the number is never too low          */
     function calculateTarget(p) {
-      // 1. Base metabolic rate
       let bmr = (10 * p.weight_kg) + (6.25 * p.height_cm) - (5 * p.age);
       bmr += (p.sex === "male") ? 5 : -161;
 
-      // 2. Activity multiplier
       const factors = {
         sedentary: 1.2, light: 1.375, moderate: 1.55, very: 1.725, extra: 1.9
       };
       const tdee = bmr * (factors[p.activity] || 1.2);
 
-      // 3. Goal adjustment (a gentle, standard 500 down / 400 up)
       let target = tdee;
       if (p.goal === "lose") target -= 500;
       if (p.goal === "gain") target += 400;
 
-      // 4. Safety floor
       const floor = (p.sex === "male") ? 1500 : 1200;
       let floored = false;
       if (target < floor) { target = floor; floored = true; }
 
       return {
         tdee: Math.round(tdee),
-        target: Math.round(target / 10) * 10,   // round to a tidy number
+        target: Math.round(target / 10) * 10,
         floored: floored
       };
     }
 
-    // When the user clicks "Calculate my target"
     $("save-profile-btn").addEventListener("click", async () => {
       const sex = $("p-sex").value;
       const age = parseInt($("p-age").value, 10);
@@ -695,7 +745,6 @@
       const activity = $("p-activity").value;
       const goal = $("p-goal").value;
 
-      // Gentle range checks so the result makes sense
       if (isNaN(age) || age < 13 || age > 100) {
         return showMessage("profile-message", "Please enter your age (between 13 and 100).", "error");
       }
@@ -708,7 +757,6 @@
 
       const calc = calculateTarget({ sex, age, height_cm: height, weight_kg: weight, activity, goal });
 
-      // Save (upsert = insert if new, update if it already exists)
       const { error } = await db.from("profiles").upsert({
         id: currentUser.id,
         sex, age, height_cm: height, weight_kg: weight, activity, goal,
@@ -717,7 +765,6 @@
       });
       if (error) return showMessage("profile-message", "Could not save: " + error.message, "error");
 
-      // Remember it in the running app and show the result
       currentProfile = { id: currentUser.id, sex, age, height_cm: height, weight_kg: weight, activity, goal, daily_target: calc.target };
       dailyTarget = calc.target;
       showResult(calc, goal);
@@ -725,11 +772,9 @@
 
     function showResult(calc, goal) {
       $("result-target").textContent = calc.target.toLocaleString();
-
       const goalText = goal === "lose" ? "lose weight"
                      : goal === "gain" ? "gain weight"
                      : "maintain your weight";
-
       let explain = "Your body uses roughly " + calc.tdee.toLocaleString() +
                     " kcal a day. To " + goalText + ", we suggest aiming for " +
                     calc.target.toLocaleString() + " kcal.";
@@ -737,16 +782,12 @@
         explain += " (We've set a safe minimum so your target isn't too low.)";
       }
       $("result-explain").textContent = explain;
-
       $("profile-form-card").classList.add("hidden");
       $("profile-result-card").classList.remove("hidden");
     }
 
-    // Result-card buttons
     $("start-tracking-btn").addEventListener("click", () => showApp(currentUser));
     $("back-to-form").addEventListener("click", (e) => { e.preventDefault(); showProfileForm(currentProfile); });
-
-    // "Edit profile" button in the app header
     $("edit-profile-btn").addEventListener("click", () => showProfileForm(currentProfile));
 
     /* ==========================================================
@@ -817,13 +858,13 @@
 
     /* ==========================================================
        8. LOADING TODAY'S ENTRIES
+       (now uses the LOCAL date so it matches the heading)
        ========================================================== */
     async function loadEntries() {
-      const today = new Date().toISOString().slice(0, 10);
       const { data: entries, error } = await db
         .from("log_entries")
         .select("*")
-        .eq("eaten_on", today)
+        .eq("eaten_on", todayStr())
         .order("created_at", { ascending: true });
       if (error) {
         showMessage("add-message", "Could not load entries: " + error.message, "error");
@@ -834,6 +875,7 @@
 
     /* ==========================================================
        9. ADDING AN ENTRY
+       (now records eaten_on as the LOCAL date)
        ========================================================== */
     $("add-btn").addEventListener("click", async () => {
       const name = $("food-name").value.trim();
@@ -847,6 +889,7 @@
         food_name: name,
         calories: kcal,
         meal: $("food-meal").value,
+        eaten_on: todayStr(),       // record today's LOCAL date
       });
       if (error) return showMessage("add-message", "Could not save: " + error.message, "error");
 
@@ -854,7 +897,7 @@
       $("food-kcal").value = "";
       $("food-hint").textContent = "";
       showMessage("add-message", "Added!", "success");
-      loadEntries();
+      refresh();
     });
 
     /* ==========================================================
@@ -863,11 +906,11 @@
     async function deleteEntry(id) {
       const { error } = await db.from("log_entries").delete().eq("id", id);
       if (error) return showMessage("add-message", "Could not delete: " + error.message, "error");
-      loadEntries();
+      refresh();
     }
 
     /* ==========================================================
-       11. DRAWING THE LIST AND THE SUMMARY BAR
+       11. DRAWING TODAY'S LIST AND THE SUMMARY BAR
        ========================================================== */
     function renderEntries(entries) {
       const list = $("entries-list");
@@ -921,6 +964,99 @@
       }
     }
 
+    /* ==========================================================
+       12. THE 7-DAY CHART (NEW)
+       Step 1: work out the 7 dates (6 days ago → today)
+       Step 2: fetch all entries since the oldest of those dates
+       Step 3: add up the calories for each day
+       Step 4: draw a bar per day, plus the dashed target line
+       ========================================================== */
+    async function loadWeek() {
+      // Step 1 — the 7 days, oldest first
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push(d);
+      }
+      const oldest = localDate(days[0]);
+
+      // Step 2 — one query for the whole week
+      const { data: rows, error } = await db
+        .from("log_entries")
+        .select("calories, eaten_on")
+        .gte("eaten_on", oldest);
+      if (error) { console.error(error); return; }
+
+      // Step 3 — sum calories per day
+      const totals = {};
+      for (const d of days) totals[localDate(d)] = 0;
+      for (const row of (rows || [])) {
+        if (totals[row.eaten_on] !== undefined) {
+          totals[row.eaten_on] += row.calories;
+        }
+      }
+
+      // Step 4 — draw it
+      renderWeek(days, totals);
+    }
+
+    function renderWeek(days, totals) {
+      const plot = $("chart-plot");
+      const labels = $("chart-labels");
+      plot.innerHTML = "";
+      labels.innerHTML = "";
+
+      // A scale tall enough to fit the biggest day OR the target,
+      // with 15% headroom so nothing touches the top.
+      const values = days.map((d) => totals[localDate(d)]);
+      const maxVal = Math.max(...values, dailyTarget);
+      const scale = (maxVal * 1.15) || 1;
+
+      // The dashed target line, positioned by its height fraction
+      const line = document.createElement("div");
+      line.className = "target-line";
+      line.style.bottom = (dailyTarget / scale * 100) + "%";
+      const tag = document.createElement("span");
+      tag.className = "target-tag";
+      tag.textContent = "target " + dailyTarget.toLocaleString();
+      line.appendChild(tag);
+      plot.appendChild(line);
+
+      // One bar + one label per day
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      let loggedDays = 0, sumLogged = 0;
+
+      for (const d of days) {
+        const total = totals[localDate(d)];
+        if (total > 0) { loggedDays++; sumLogged += total; }
+
+        const bar = document.createElement("div");
+        let cls = "bar";
+        if (total === 0) cls += " empty";
+        else if (total > dailyTarget) cls += " over";
+        bar.className = cls;
+        bar.style.height = (total === 0) ? "2px" : (total / scale * 100) + "%";
+        bar.title = localDate(d) + ": " + total.toLocaleString() + " kcal";
+        plot.appendChild(bar);
+
+        const label = document.createElement("span");
+        label.textContent = dayNames[d.getDay()];
+        labels.appendChild(label);
+      }
+
+      // A friendly summary under the chart
+      const note = $("week-note");
+      if (loggedDays === 0) {
+        note.textContent = "No meals logged in the last 7 days yet — your chart fills in as you log.";
+      } else {
+        const avg = Math.round(sumLogged / loggedDays);
+        note.textContent = "You logged " + loggedDays + " of the last 7 days. Average: " +
+          avg.toLocaleString() + " kcal/day (target " + dailyTarget.toLocaleString() + ").";
+      }
+    }
+
+    /* ---- small helper for feedback messages ---- */
     function showMessage(id, text, type) {
       const el = $(id);
       el.textContent = text;
