@@ -505,6 +505,26 @@
 
     <!-- Add food -->
     <div class="card">
+      <div class="field">
+        <label for="food-category">Type</label>
+        <select id="food-category">
+          <option value="general">General food (จาน / ชาม)</option>
+          <option value="buffet">Buffet / shabu (ถาด / ไม้ / ชิ้น)</option>
+        </select>
+      </div>
+      <div class="field hidden" id="brand-field">
+        <label for="food-brand">Restaurant</label>
+        <select id="food-brand">
+          <option value="teenoi">สุกี้ตี๋น้อย</option>
+          <option value="mk">MK</option>
+          <option value="katei">Katei Shabu</option>
+          <option value="momo">Mo-Mo Paradise</option>
+          <option value="aka">AKA Yakiniku</option>
+          <option value="copper">Copper Beyond Buffet</option>
+          <option value="youandi">YOU&amp;I</option>
+          <option value="generic">อื่น ๆ / ของลวกทั่วไป</option>
+        </select>
+      </div>
       <div class="add-form-row">
         <div class="food-field">
           <label for="food-name">Food</label>
@@ -799,17 +819,36 @@
       const query = $("food-name").value.trim();
       $("food-hint").textContent = "";
       clearTimeout(searchTimer);
-      if (query.length < 2) { hideSuggestions(); return; }
+      // Buffet mode lists the menu even with nothing typed;
+      // general mode waits for 2 letters.
+      const minLen = ($("food-category").value === "buffet") ? 0 : 2;
+      if (query.length < minLen) { hideSuggestions(); return; }
       searchTimer = setTimeout(() => searchFoods(query), 200);
     });
 
+    // Clicking into the food box in buffet mode shows the
+    // restaurant's menu right away.
+    $("food-name").addEventListener("focus", () => {
+      if ($("food-category").value === "buffet") {
+        searchFoods($("food-name").value.trim());
+      }
+    });
+
     async function searchFoods(query) {
-      const { data: foods, error } = await db
+      let request = db
         .from("foods")
         .select("name, calories, serving")
+        .eq("category", $("food-category").value);
+
+      // Buffet: only show the chosen restaurant's menu
+      if ($("food-category").value === "buffet") {
+        request = request.eq("brand", $("food-brand").value);
+      }
+
+      const { data: foods, error } = await request
         .ilike("name", "%" + query + "%")
         .order("name", { ascending: true })
-        .limit(8);
+        .limit(12);
       if (error) { hideSuggestions(); return; }
       renderSuggestions(foods);
     }
@@ -854,6 +893,23 @@
 
     document.addEventListener("click", (e) => {
       if (!e.target.closest(".food-field")) hideSuggestions();
+    });
+
+    // When the type changes: show/hide the restaurant picker,
+    // update the example text, and refresh the suggestions.
+    $("food-category").addEventListener("change", () => {
+      const isBuffet = ($("food-category").value === "buffet");
+      $("brand-field").classList.toggle("hidden", !isBuffet);
+      $("food-name").placeholder = isBuffet
+        ? "แตะเพื่อดูเมนูของร้าน หรือพิมพ์ค้นหา"
+        : "Start typing, e.g. กะเพรา";
+      const q = $("food-name").value.trim();
+      if (isBuffet || q.length >= 2) { searchFoods(q); } else { hideSuggestions(); }
+    });
+
+    // Changing the restaurant refreshes the menu list.
+    $("food-brand").addEventListener("change", () => {
+      searchFoods($("food-name").value.trim());
     });
 
     /* ==========================================================
