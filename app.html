@@ -510,20 +510,13 @@
         <select id="food-category">
           <option value="general">General food (จาน / ชาม)</option>
           <option value="buffet">Buffet / shabu (ถาด / ไม้ / ชิ้น)</option>
+          <option value="fastfood">US restaurants &amp; fast food</option>
         </select>
       </div>
       <div class="field hidden" id="brand-field">
         <label for="food-brand">Restaurant</label>
-        <select id="food-brand">
-          <option value="teenoi">สุกี้ตี๋น้อย</option>
-          <option value="mk">MK</option>
-          <option value="katei">Katei Shabu</option>
-          <option value="momo">Mo-Mo Paradise</option>
-          <option value="aka">AKA Yakiniku</option>
-          <option value="copper">Copper Beyond Buffet</option>
-          <option value="youandi">YOU&amp;I</option>
-          <option value="generic">อื่น ๆ / ของลวกทั่วไป</option>
-        </select>
+        <!-- Filled in by JavaScript (section 7) depending on the Type -->
+        <select id="food-brand"></select>
       </div>
       <div class="add-form-row">
         <div class="food-field">
@@ -815,21 +808,63 @@
        ========================================================== */
     let searchTimer = null;
 
+    /* The restaurant list for each Type. The first value in each pair
+       must match the "brand" column in the Supabase foods table.
+       To add a restaurant later: add a line here + its rows in Supabase. */
+    const RESTAURANTS = {
+      buffet: [
+        ["teenoi",  "สุกี้ตี๋น้อย"],
+        ["mk",      "MK"],
+        ["katei",   "Katei Shabu"],
+        ["momo",    "Mo-Mo Paradise"],
+        ["aka",     "AKA Yakiniku"],
+        ["copper",  "Copper Beyond Buffet"],
+        ["youandi", "YOU&I"],
+        ["generic", "อื่น ๆ / ของลวกทั่วไป"],
+      ],
+      fastfood: [
+        ["mcdonalds",    "McDonald's"],
+        ["tacobell",     "Taco Bell"],
+        ["chipotle",     "Chipotle"],
+        ["chickfila",    "Chick-fil-A"],
+        ["innout",       "In-N-Out"],
+        ["wendys",       "Wendy's"],
+        ["pandaexpress", "Panda Express"],
+      ],
+    };
+
+    // True when the chosen Type needs a restaurant picker.
+    function hasRestaurants() {
+      return RESTAURANTS[$("food-category").value] !== undefined;
+    }
+
+    // Rebuild the Restaurant dropdown for the chosen Type.
+    function fillRestaurants() {
+      const select = $("food-brand");
+      select.innerHTML = "";
+      for (const [code, label] of (RESTAURANTS[$("food-category").value] || [])) {
+        const opt = document.createElement("option");
+        opt.value = code;
+        opt.textContent = label;
+        select.appendChild(opt);
+      }
+    }
+
     $("food-name").addEventListener("input", () => {
       const query = $("food-name").value.trim();
       $("food-hint").textContent = "";
       clearTimeout(searchTimer);
-      // Buffet mode lists the menu even with nothing typed;
+      // Restaurant modes list the menu even with nothing typed;
       // general mode waits for 2 letters.
-      const minLen = ($("food-category").value === "buffet") ? 0 : 2;
+      const minLen = hasRestaurants() ? 0 : 2;
       if (query.length < minLen) { hideSuggestions(); return; }
       searchTimer = setTimeout(() => searchFoods(query), 200);
     });
 
-    // Clicking into the food box in buffet mode shows the
+    // Clicking into the food box in a restaurant mode shows that
     // restaurant's menu right away.
     $("food-name").addEventListener("focus", () => {
-      if ($("food-category").value === "buffet") {
+      if (hasRestaurants()) {
         searchFoods($("food-name").value.trim());
       }
     });
@@ -840,15 +875,15 @@
         .select("name, calories, serving")
         .eq("category", $("food-category").value);
 
-      // Buffet: only show the chosen restaurant's menu
-      if ($("food-category").value === "buffet") {
+      // Restaurant modes: only show the chosen restaurant's menu
+      if (hasRestaurants()) {
         request = request.eq("brand", $("food-brand").value);
       }
 
       const { data: foods, error } = await request
         .ilike("name", "%" + query + "%")
         .order("name", { ascending: true })
-        .limit(12);
+        .limit(40);
       if (error) { hideSuggestions(); return; }
       renderSuggestions(foods);
     }
@@ -898,19 +933,25 @@
     // When the type changes: show/hide the restaurant picker,
     // update the example text, and refresh the suggestions.
     $("food-category").addEventListener("change", () => {
-      const isBuffet = ($("food-category").value === "buffet");
-      $("brand-field").classList.toggle("hidden", !isBuffet);
-      $("food-name").placeholder = isBuffet
+      const withRestaurants = hasRestaurants();
+      $("brand-field").classList.toggle("hidden", !withRestaurants);
+      fillRestaurants();
+      $("food-name").placeholder = withRestaurants
         ? "แตะเพื่อดูเมนูของร้าน หรือพิมพ์ค้นหา"
-        : "Start typing, e.g. กะเพรา";
+        : "Start typing, e.g. กะเพรา / taco";
       const q = $("food-name").value.trim();
-      if (isBuffet || q.length >= 2) { searchFoods(q); } else { hideSuggestions(); }
+      if (withRestaurants || q.length >= 2) { searchFoods(q); } else { hideSuggestions(); }
     });
 
     // Changing the restaurant refreshes the menu list.
     $("food-brand").addEventListener("change", () => {
       searchFoods($("food-name").value.trim());
     });
+
+    // On page load, match the picker to whatever Type is selected
+    // (some browsers remember the last choice after a refresh).
+    fillRestaurants();
+    $("brand-field").classList.toggle("hidden", !hasRestaurants());
 
     /* ==========================================================
        8. LOADING TODAY'S ENTRIES
